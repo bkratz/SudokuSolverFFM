@@ -7,9 +7,9 @@
 ## Aufruf von Jextract
 
 ```shell
-/Users/birgitkratz/Downloads/jextract-22/bin/jextract 
+<pathToJextract>/jextract 
 --output src/main/java 
---target-package de.birgitkratz.sudokusolver.jextract 
+--target-package <targetPackage> 
 --include-typedef Sudoku 
 --include-function solve 
 --library :lib/libSudokuSolver.dylib 

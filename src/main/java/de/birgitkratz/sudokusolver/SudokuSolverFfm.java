@@ -30,35 +30,45 @@ public class SudokuSolverFfm {
         final var symbolLookup = SymbolLookup.loaderLookup().find("solve").orElseThrow();
         final var solve = Linker.nativeLinker().downcallHandle(symbolLookup, FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
 
-        // 3. Use try-with-resources to manage the lifetime of off-heap memory
+        // 3. Describe the input parameter of the solve-Method as a MemoryLayout
+        final var sudokuStructLayout = MemoryLayout.structLayout(
+                ADDRESS.withTargetLayout(
+                        MemoryLayout.sequenceLayout(board.length, ValueLayout.JAVA_BYTE)
+                ).withName("a"),
+                ValueLayout.JAVA_BYTE.withName("N"),
+                ValueLayout.JAVA_BYTE.withName("N2")
+
+        );
+
+        // 4. Getting VarHandles for the MemoryLayout (which internally handles offsets)
+        final var aHandle = sudokuStructLayout.varHandle(MemoryLayout.PathElement.groupElement("a"));
+        final var nHandle = sudokuStructLayout.varHandle(MemoryLayout.PathElement.groupElement("N"));
+        final var n2Handle = sudokuStructLayout.varHandle(MemoryLayout.PathElement.groupElement("N2"));
+
+        // 5. Use try-with-resources to manage the lifetime of off-heap memory
         try (Arena arena = Arena.ofConfined()) {
-
-            // 4. Describe the input parameter of the solve-Method as a MemoryLayout
-            final var sudokuStructLayout = MemoryLayout.structLayout(
-                    ADDRESS.withTargetLayout(
-                            MemoryLayout.sequenceLayout(board.length, ValueLayout.JAVA_BYTE)
-                    ).withName("a"),
-                    ValueLayout.JAVA_BYTE.withName("N"),
-                    ValueLayout.JAVA_BYTE.withName("N2")
-            );
-
-            // 5. Allocate a region of off-heap memory to store the input parameter
+            // 6. Allocate a region of off-heap memory to store the input parameter
             final var solveMemorySegment = arena.allocate(sudokuStructLayout);
 
-            // 6. Allocate a region of off-heap memory initialized with the elements of the board array
+            // 7. Allocate a region of off-heap memory initialized with the elements of the board array
             final var boardMemorySegment = arena.allocateFrom(JAVA_BYTE, board);
 
-            // 7. Set the values of the input struct
-            solveMemorySegment.set(ADDRESS, 0L, boardMemorySegment);
-            solveMemorySegment.set(JAVA_BYTE, ADDRESS.byteSize(), (byte) 9);
-            solveMemorySegment.set(JAVA_BYTE, ADDRESS.byteSize() + JAVA_BYTE.byteSize(), (byte) 3);
+            // 8. Set the values of the input struct
+            aHandle.set(solveMemorySegment, 0L, boardMemorySegment);
+            nHandle.set(solveMemorySegment, 0L, (byte) 9);
+            n2Handle.set(solveMemorySegment, 0L, (byte) 3);
 
-            // 8. Call the foreign function
+            // Alternative solution for setting the values, with self-handling of offsets
+            // solveMemorySegment.set(ADDRESS, 0L, boardMemorySegment);
+            // solveMemorySegment.set(JAVA_BYTE, ADDRESS.byteSize(), (byte) 9);
+            // solveMemorySegment.set(JAVA_BYTE, ADDRESS.byteSize() + JAVA_BYTE.byteSize(), (byte) 3);
+
+            // 9. Call the foreign function
             final var solved = (boolean) solve.invoke(solveMemorySegment);
 
             if (solved) {
                 int[] solvedSudoku = new int[board.length];
-                // 9. Copy the solved sudoku board from off-heap to on-heap
+                // 10. Copy the solved sudoku board from off-heap to on-heap
                 for (int i = 0; i < board.length; ++i) {
                     solvedSudoku[i] = boardMemorySegment.get(JAVA_BYTE, i);
                 }
@@ -70,8 +80,8 @@ public class SudokuSolverFfm {
             }
         } catch (Throwable e) {
             System.out.println("I could not solve this one :(");
-        } // 10. All off-heap memory is deallocated here
-    }
+        }
+    } // 11. All off-heap memory is deallocated here
 
     private static byte[] readInBoard() throws IOException {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();

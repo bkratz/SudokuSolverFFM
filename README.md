@@ -15,3 +15,6 @@
 --library :lib/libSudokuSolver.dylib 
 lib/sudokusolver.h
 ```
+
+## Running program 'SudokuSolverFfm'
+In RunConfiguration set VM Option `-Djava.library.path=<path to>/SudokuSolver/SudokuSolverFFM/lib`

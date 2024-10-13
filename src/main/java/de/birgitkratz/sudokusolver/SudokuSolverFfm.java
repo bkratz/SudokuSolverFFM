@@ -73,7 +73,7 @@ public class SudokuSolverFfm {
                     solvedSudoku[i] = boardMemorySegment.get(JAVA_BYTE, i);
                 }
 
-                System.out.println("Successfully solved this Sudoku.");
+                System.out.println("This was easy!");
                 writeOutSolvedBoard(solvedSudoku);
             } else {
                 System.out.println("This was a little too hard.");

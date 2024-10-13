@@ -47,7 +47,7 @@ public class SudokuSolverFfmWithJextract {
                     solvedSudoku[i] = resultSegment.get(C_CHAR, i);
                 }
 
-                System.out.println("This was a little too hard.");
+                System.out.println("This was easy!");
                 writeOutSolvedBoard(solvedSudoku);
             } else {
                 System.out.println("This was a little too hard.");
